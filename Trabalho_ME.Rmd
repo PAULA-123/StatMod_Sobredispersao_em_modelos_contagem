@@ -1,0 +1,154 @@
+---
+title: "Trabalho_ME"
+author: "Paula Eduarda de Lima"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Introdução
+Este documento analisa os dados RecreationDemand do pacote AER, que contêm informações sobre o número de viagens de lazer ao Lago Somerville, Texas, em 1980, feitas por proprietários de barcos recreativos.
+
+### Carregando os Pacotes e os Dados
+
+```{r}
+# Instalar se necessário
+# install.packages("AER")
+# Instale caso ainda não tenha
+install.packages("AER", dependencies = TRUE)
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("psych")
+install.packages("corrplot")
+
+# Carregar os pacotes
+library(AER)
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)
+
+
+```
+```{r}
+data("RecreationDemand")
+df <- RecreationDemand
+
+```
+
+### Estrutura dos Dados
+
+```{r }
+# Primeiras linhas
+head(RecreationDemand)
+
+# Estrutura
+str(RecreationDemand)
+
+# Resumo estatístico
+summary(RecreationDemand)
+
+```
+
+```{r }
+# Para variáveis numéricas
+describe(df)
+
+
+```
+
+```{r }
+# Histograma
+ggplot(df, aes(x = trips)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(title = "Distribuição do Número de Viagens", x = "Número de Viagens", y = "Frequência")
+
+
+```
+
+```{r }
+# Selecionar apenas variáveis numéricas
+num_df <- df %>% select(where(is.numeric))
+
+# Matriz de correlação
+cor_matrix <- cor(num_df)
+
+# Visualizar
+corrplot(cor_matrix, method = "number", type = "upper")
+
+```
+
+
+
+
+
+
+```{r }
+# trips vs ski
+ggplot(df, aes(x = factor(ski), y = trips)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Viagens por Tipo de Uso (Ski)", x = "Usa para Ski (0 = não, 1 = sim)", y = "Número de Viagens")
+
+
+```
+
+
+```{r }
+ggplot(df, aes(x = income, y = trips)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Relação entre Renda e Número de Viagens", x = "Renda", y = "Viagens")
+
+
+```
+
+```{r }
+# Comparação visual
+df_long <- df %>% 
+  select(trips, costC, costS, costH) %>%
+  pivot_longer(cols = starts_with("cost"), names_to = "Destino", values_to = "Custo")
+
+ggplot(df_long, aes(x = Custo)) +
+  geom_histogram(bins = 30, fill = "tomato", color = "white") +
+  facet_wrap(~ Destino, scales = "free") +
+  labs(title = "Distribuição dos Custos de Viagem", x = "Custo", y = "Frequência")
+
+```
+
+### Visualização: Número de Viagens
+```{r}
+hist(RecreationDemand$trips, 
+     main = "Distribuição do Número de Viagens",
+     xlab = "Número de Viagens", 
+     col = "lightblue", 
+     border = "white")
+```
+
+
+### Ajustando um Modelo de Regressão de Poisson
+Vamos modelar o número de viagens em função da renda, custos e uso para esqui.
+
+```{r}
+pois_model <- glm(trips ~ income + costC + quality + ski, 
+                  data = RecreationDemand, 
+                  family = poisson())
+
+summary(pois_model)
+
+```
+
+Interpretação Inicial
+Coeficientes negativos indicam efeito redutor sobre o número de viagens.
+
+O custo da viagem (costC) e a variável de esqui (ski) são particularmente interessantes para políticas públicas.
+
+Próximos Passos
+Testar modelo de binomial negativa (caso haja superdispersão)
+
+Avaliar efeitos marginais
+
+Simular políticas de redução de custo ou aumento de qualidade
